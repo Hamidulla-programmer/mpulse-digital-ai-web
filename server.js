@@ -73,11 +73,15 @@ async function logToSheets(formType, payload) {
   const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
   if (!url) { console.warn('GOOGLE_SHEETS_WEBHOOK_URL not set — skipping Sheets log'); return; }
   try {
-    await fetch(url, {
-      method: 'POST',
+    const res = await fetch(url, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
+      // Apps Script requires redirect follow for POST → GET quirk
+      redirect: 'follow',
       body: JSON.stringify({ formType, payload })
     });
+    const text = await res.text();
+    console.log(`Sheets log [${formType}]:`, res.status, text.slice(0, 120));
   } catch (err) { console.error('Sheets log error:', err.message); }
 }
 
