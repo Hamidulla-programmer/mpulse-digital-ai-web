@@ -48,11 +48,21 @@ const razorpay = new Razorpay({
 });
 
 // ─────────────────────────────────────────────────────────────
-// EMAIL  (Gmail — mpulsedigitalai@gmail.com)
+// EMAIL — uses Gmail via Nodemailer with explicit port + TLS
+// If this still times out on Render free tier, email is simply
+// skipped (non-critical — Sheets + Firestore still save data).
 // ─────────────────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+  host:   'smtp.gmail.com',
+  port:    465,
+  secure:  true,   // SSL
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS   // Gmail App Password (16 chars)
+  },
+  connectionTimeout: 10000,   // 10s — fail fast instead of hanging
+  greetingTimeout:   10000,
+  socketTimeout:     10000
 });
 
 function sendEmail(subject, html) {
@@ -60,7 +70,12 @@ function sendEmail(subject, html) {
     from: `"MPULSE DIGITAL AI" <${process.env.EMAIL_USER}>`,
     to:   process.env.NOTIFY_EMAIL || 'mpulsedigitalai@gmail.com',
     subject, html
-  }).catch(err => console.error('Email error:', err.message));
+  })
+  .then(() => console.log('✅ Email sent:', subject))
+  .catch(err => {
+    console.warn('⚠️ Email skipped (non-critical):', err.message);
+    // Email failure does NOT affect Sheets or Firestore saves
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
